@@ -31,7 +31,6 @@ if (isset($_GET['src']) || isset($_GET['utm_campaign']) || isset($_GET['utm_sour
     $_SESSION['utm_term'] = $_GET['utm_term'];
     $_SESSION['utm_content'] = $_GET['utm_content'];
 }
-
 ?>
 
 <!DOCTYPE html>
