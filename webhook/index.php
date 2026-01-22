@@ -66,7 +66,7 @@ $deposito = $res ? $res->fetch_assoc() : null;
 if (!$deposito) {
     $conn->rollback();
     http_response_code(200);
-    echo json_encode(['ok' => true]);
+    echo json_encode(['não exite' => true]);
     exit;
 }
 
@@ -74,7 +74,7 @@ if (!$deposito) {
 if ($deposito['status'] === 'PAID_OUT') {
     $conn->rollback();
     http_response_code(200);
-    echo json_encode(['ok' => true]);
+    echo json_encode(['existe' => true]);
     exit;
 }
 
