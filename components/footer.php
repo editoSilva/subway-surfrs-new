@@ -12,4 +12,4 @@
     }
 </style>
 
-<div class="divDesenvolv follow-test">Site desenvolvido por <a href="<?php echo $_ENV['SITE_DESENVOLVEDORA']; ?>" target="_blank"><img class='imageDesenvolv' src="<?php echo $_ENV['IMAGEM_DESENVOLVEDORA']; ?>" /></a> </div>
+<!-- <div class="divDesenvolv follow-test">Site desenvolvido por <a href="<?php echo $_ENV['SITE_DESENVOLVEDORA']; ?>" target="_blank"><img class='imageDesenvolv' src="<?php echo $_ENV['IMAGEM_DESENVOLVEDORA']; ?>" /></a> </div> -->
