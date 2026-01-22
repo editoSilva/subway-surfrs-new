@@ -30,7 +30,7 @@ if (!$payload || ($payload['type'] ?? null) !== 'PAYIN') {
     exit;
 }
 
-$externalReference = $payload['transactionId'] ?? null;
+$externalReference = $payload['orderId'] ?? null;
 $status = $payload['status'] ?? null;
 
 if (!$externalReference || !$status) {
