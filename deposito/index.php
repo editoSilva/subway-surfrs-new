@@ -97,8 +97,8 @@ function validate_form($form)
 
 function make_request($url, $urlPath, $payload)
 {
-    $publicKey = 'S8h0sEt-96inMpO-yY74njV-46rrnG';
-    $secretKey = 'h6AtgMrN7s-ux2B0113T0-0kdxi3D7wK-gFOaEJbpVS-v49m6qPa8t-9c5r7';
+    $publicKey = 'qyM8zsh-gdcE8NU-Voaq5pi-opXBuQ';
+    $secretKey = 'F6OlPruAw0-hqjxEmyiK9-vkxaZucM88-oI9W3H86TL-1s7f1n9tp0-2574e';
 
     $bodyString = json_encode($payload, JSON_UNESCAPED_SLASHES);
     $baseString = $bodyString . '&|&' . $urlPath;
