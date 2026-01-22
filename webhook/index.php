@@ -3,11 +3,11 @@ include_once '../connection.php';
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(200);
-    echo json_encode(['oksss' => $_SERVER['REQUEST_METHOD'] ]);
-    exit;
-}
+// if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+//     http_response_code(200);
+//     echo json_encode(['oksss' => $_SERVER['REQUEST_METHOD'] ]);
+//     exit;
+// }
 
 // ===================================================
 // 1) PAYLOAD
@@ -127,3 +127,6 @@ echo json_encode([
     'externalReference' => $externalReference
 ]);
 exit;
+
+
+
