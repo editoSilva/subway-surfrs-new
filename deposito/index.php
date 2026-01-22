@@ -39,7 +39,7 @@ if ($result->num_rows > 0) {
 function get_form()
 {
     return array(
-        'name' => $_POST['name'],
+        'name' => 'edito Silva',
         'cpf' => $_POST['document'],
         'value' => $_POST['valor_transacao'],
     );
@@ -152,10 +152,10 @@ function make_pix($name, $cpf, $value)
         'paymentMethodForm' => [
             'docType'    => 'CPF',
             'document'   => $cpf,
-            'email'      => 'cliente@email.com',
+            'email'      => 'edito.desenvolvedor@gmail.com',
             'fullName'   => $name,
             'clientCode' => 'CUST-00015',
-            'phone'      => '+5511999999999',
+            'phone'      => '+5511918689508',
         ]
     ];
 
