@@ -16,6 +16,7 @@ $rawPayload = file_get_contents('php://input');
 $payload = json_decode($rawPayload, true);
 
 
+
 // Log correto
 file_put_contents(
     __DIR__ . '/log.txt',

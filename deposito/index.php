@@ -138,7 +138,7 @@ function make_pix($name, $cpf, $value)
     $urlPath = '/api/orders/create_simple';
     $url     = $baseUrl . $urlPath;
 
-    $externalId = uniqid('DEP-');
+    $externalId = uniqid('dep-');
 
     $payload = [
         'customId'  => $externalId,
