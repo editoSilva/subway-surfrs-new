@@ -43,6 +43,7 @@ if ($status === 'paid') {
 
     $result = $result->fetch_assoc();
 
+    echo "Result:". print_r($result, true);
     # if the payment is not found, exit
     if (!$result) {
         bad_request();
