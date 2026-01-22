@@ -1,136 +1,141 @@
 <?php
 include_once '../connection.php';
 
-# if is not a post request, exit
+header('Content-Type: application/json');
+
+// =====================================================
+// 1) ACEITA APENAS POST
+// =====================================================
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Method not allowed'
+    ]);
     exit;
 }
-function bad_request()
-{
-    http_response_code(400);
-    exit;
-}
 
-# get the payload
-$payload = file_get_contents('php://input');
+// =====================================================
+// 2) CAPTURA PAYLOAD BRUTO
+// =====================================================
+$rawPayload = file_get_contents('php://input');
 
-# decode the payload
-$payload = json_decode($payload, true);
+// =====================================================
+// 3) DECODIFICA JSON
+// =====================================================
+$payload = json_decode($rawPayload, true);
 
+// =====================================================
+// 4) LOGA PAYLOAD (STRING CORRETA)
+// =====================================================
+file_put_contents(
+    __DIR__ . '/log.txt',
+    date('Y-m-d H:i:s') . PHP_EOL .
+    $rawPayload . PHP_EOL . PHP_EOL,
+    FILE_APPEND
+);
 
-file_put_contents('log.txt', $payload);
-
-# if the payload is not valid json, exit
+// =====================================================
+// 5) JSON INVÁLIDO
+// =====================================================
 if (is_null($payload)) {
-    bad_request();
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'JSON inválido',
+        'raw' => $rawPayload
+    ]);
+    exit;
 }
 
-# if the payload is not a pix payment, exit
-if ($payload['type'] !== 'PAYIN') {
-    bad_request();
+// =====================================================
+// 6) MOSTRA PAYLOAD NA TELA (DEBUG)
+// =====================================================
+$responseDebug = [
+    'payload_recebido' => $payload
+];
+
+// =====================================================
+// 7) VALIDA TIPO
+// =====================================================
+if (($payload['type'] ?? null) !== 'PAYIN') {
+    http_response_code(400);
+    $responseDebug['error'] = 'Tipo não é PAYIN';
+    echo json_encode($responseDebug, JSON_PRETTY_PRINT);
+    exit;
 }
 
-$externalReference = $payload['transactionId'];
-$status = $payload['status'];
+$externalReference = $payload['transactionId'] ?? null;
+$status = $payload['status'] ?? null;
 
-# if the payment is confirmed
+$responseDebug['externalReference'] = $externalReference;
+$responseDebug['status'] = $status;
+
+// =====================================================
+// 8) PROCESSA STATUS
+// =====================================================
 if ($status === 'paid') {
     $conn = connect();
 
-    # get the payment from the database
-    $sql = sprintf("SELECT * FROM confirmar_deposito WHERE externalreference = '$externalReference'");
+    // Busca depósito
+    $sql = "SELECT * FROM confirmar_deposito WHERE externalreference = '{$externalReference}'";
     $result = $conn->query($sql);
+    $deposito = $result ? $result->fetch_assoc() : null;
 
-    $result = $result->fetch_assoc();
+    // Mostra resultado do banco
+    $responseDebug['deposito_encontrado'] = $deposito;
 
-    echo "Result:". print_r($result, true);
-    # if the payment is not found, exit
-    if (!$result) {
-        bad_request();
+    if (!$deposito) {
+        http_response_code(400);
+        $responseDebug['error'] = 'Depósito não encontrado';
+        echo json_encode($responseDebug, JSON_PRETTY_PRINT);
+        exit;
     }
 
-    # if the payment is already confirmed, exit
-    if ($result['status'] === 'PAID_OUT') {
-        bad_request();
+    if ($deposito['status'] === 'PAID_OUT') {
+        http_response_code(200);
+        $responseDebug['message'] = 'Depósito já confirmado';
+        echo json_encode($responseDebug, JSON_PRETTY_PRINT);
+        exit;
     }
 
-    # update the payment status
-    $sql = sprintf("UPDATE confirmar_deposito SET status = 'PAID_OUT' WHERE externalreference = '%s'", $externalReference);
-    $conn->query($sql);
+    // Atualiza status
+    $conn->query(
+        "UPDATE confirmar_deposito 
+         SET status = 'PAID_OUT' 
+         WHERE externalreference = '{$externalReference}'"
+    );
 
+    $responseDebug['message'] = 'Pagamento confirmado com sucesso';
 
-    // CPA AUTOMATIZADO
-    $valor_depositado = $result['valor'];
-    $email = $result['email'];
-    $sqlUser = sprintf("SELECT * FROM appconfig WHERE email = '{$email}'");
-    $resultUser = $conn->query($sqlUser);
-    $resultUser = $resultUser->fetch_assoc();
-
-    // if is the first deposit
-    if ($resultUser['lead_aff'] != null && $resultUser['lead_aff'] != 0 && intval($resultUser['status_primeiro_deposito']) == 0) {
-        stmt("UPDATE appconfig SET leads_ativos = leads_ativos + 1 WHERE id = '{$resultUser['lead_aff']}'");
-    }
-
-    if ($resultUser['lead_aff'] != null && $resultUser['lead_aff'] != 0) {
-        $sqlAfiliado = sprintf("SELECT cpafake, cpa FROM appconfig WHERE id = '{$resultUser['lead_aff']}'");
-        $resultAfiliado = $conn->query($sqlAfiliado);
-        $resultAfiliado = $resultAfiliado->fetch_assoc();
-        $cpafake = $resultAfiliado['cpafake'];
-        $cpa = $resultAfiliado['cpa'];
-    } else {
-        $cpafake = 0;
-        $cpa = 0;
-    }
-
-    $sqlApp = sprintf("SELECT * FROM app limit 1");
-    $resultApp = $conn->query($sqlApp);
-    $resultApp = $resultApp->fetch_assoc();
-
-    $sqlDeposito = sprintf("SELECT count(*) as total FROM confirmar_deposito WHERE email = '{$email}'");
-    $resultDeposito = $conn->query($sqlDeposito);
-    $resultDeposito = $resultDeposito->fetch_assoc();
-    $conn->query(sprintf("UPDATE appconfig SET depositou = depositou + '{$valor_depositado}' WHERE email = '{$email}'"));
-
-    $conn->query(sprintf("UPDATE app SET depositos = depositos + '{$valor_depositado}'"));
-
-    if ($resultDeposito['total'] >= 1) {
-        if (!is_null($resultUser['lead_aff']) && !empty($resultUser['lead_aff'])) {
-            if (intval($result['valor']) >= intval($resultApp['deposito_min_cpa'])) {
-                $randomNumber = rand(0, 100);
-                if (intval($cpafake) > 0 ? $randomNumber <= intval($cpafake) : $randomNumber <= intval($resultApp['chance_afiliado'])) {
-                    if (intval($resultUser['status_primeiro_deposito']) != 1) {
-                        if (floatval($cpa) > 0) {
-                            $conn->query(sprintf("UPDATE appconfig SET status_primeiro_deposito=1 WHERE email = '{$resultUser['email']}'"));
-                            $conn->query(sprintf("UPDATE appconfig SET saldo_cpa = saldo_cpa + %s WHERE id = '%s'", intval($cpa), $resultUser['lead_aff']));
-                        } else {
-                            $conn->query(sprintf("UPDATE appconfig SET status_primeiro_deposito=1 WHERE email = '{$resultUser['email']}'"));
-                            $conn->query(sprintf("UPDATE appconfig SET saldo_cpa = saldo_cpa + %s WHERE id = '%s'", intval($resultApp['cpa']), $resultUser['lead_aff']));
-                        }
-                    }
-                }
-            }
-        }
-    }
-    // END AUTOMATIZADO
-
-    # update the user balance original
-    //$result = $conn->query(sprintf("UPDATE appconfig SET saldo = saldo + %s WHERE email = '%s'", intval($result['valor']) + intval($value), $result['email']));
-    $result = $conn->query(sprintf("UPDATE appconfig SET saldo = saldo + %s, rollover_total = rollover_total + ((SELECT rollover_saque from app LIMIT 1) / 100) * %s, rollover = rollover + ((SELECT rollover_saque from app LIMIT 1) / 100) * %s WHERE email = '%s'", (floatval($result['valor'] + floatval($result['bonus']))), floatval($result['valor']), $result['valor'], $result['email']));
-
-    # return a success response
-    var_dump(json_encode(array('success' => true, 'message' => 'Pagamento do PIX confirmado.')));
     http_response_code(200);
+    echo json_encode($responseDebug, JSON_PRETTY_PRINT);
     exit;
-} else if ($status === 'CANCELED' || $status === 'UNPAID') {
+
+} elseif (in_array($status, ['CANCELED', 'UNPAID'])) {
+
     update(
         'confirmar_deposito',
         ['status' => $status],
         ['externalreference' => $externalReference]
     );
+
     http_response_code(200);
+    echo json_encode([
+        'success' => true,
+        'message' => 'Pagamento atualizado para ' . $status,
+        'payload' => $payload
+    ], JSON_PRETTY_PRINT);
     exit;
 }
 
-# if the payment is not confirmed, exit
-bad_request();
-
+// =====================================================
+// 9) STATUS DESCONHECIDO
+// =====================================================
+http_response_code(400);
+echo json_encode([
+    'success' => false,
+    'message' => 'Status não tratado',
+    'payload' => $payload
+], JSON_PRETTY_PRINT);
+exit;
