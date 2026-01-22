@@ -26,15 +26,15 @@ if (is_null($payload)) {
 }
 
 # if the payload is not a pix payment, exit
-if ($payload['typeTransaction'] !== 'PIX') {
+if ($payload['type'] !== 'PAYIN') {
     bad_request();
 }
 
-$externalReference = $payload['idTransaction'];
-$status = $payload['statusTransaction'];
+$externalReference = $payload['transactionId'];
+$status = $payload['status'];
 
 # if the payment is confirmed
-if ($status === 'PAID_OUT') {
+if ($status === 'paid') {
     $conn = connect();
 
     # get the payment from the database
