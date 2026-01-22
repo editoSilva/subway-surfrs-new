@@ -24,7 +24,7 @@ file_put_contents(
 
 if (!$payload || ($payload['type'] ?? null) !== 'PAYIN') {
     http_response_code(200);
-    echo json_encode(['ok' => true]);
+    echo json_encode(['ok PAYIN' => true]);
     exit;
 }
 
@@ -33,7 +33,7 @@ $status = $payload['status'] ?? null;
 
 if (!$externalReference || !$status) {
     http_response_code(200);
-    echo json_encode(['ok' => true]);
+    echo json_encode(['ok ddd' => true]);
     exit;
 }
 
@@ -47,7 +47,7 @@ if ($status !== 'paid') {
         ['externalreference' => $externalReference]
     );
     http_response_code(200);
-    echo json_encode(['ok' => true]);
+    echo json_encode(['ok paid' => true]);
     exit;
 }
 
