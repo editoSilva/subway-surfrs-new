@@ -17,6 +17,10 @@ $payload = file_get_contents('php://input');
 # decode the payload
 $payload = json_decode($payload, true);
 
+print_r($payload);
+
+die();
+
 file_put_contents('log.txt', $payload);
 
 # if the payload is not valid json, exit
