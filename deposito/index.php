@@ -39,12 +39,13 @@ if ($result->num_rows > 0) {
 function get_form()
 {
     return array(
-        'name' => 'edito Silva',
+        'name' => 'edito silva',
         'cpf' => $_POST['document'],
         'value' => $_POST['valor_transacao'],
     );
 }
 
+//
 function validate_form($form)
 {
     global $depositoMinimo;
@@ -96,8 +97,8 @@ function validate_form($form)
 
 function make_request($url, $urlPath, $payload)
 {
-    $publicKey = 'qyM8zsh-gdcE8NU-Voaq5pi-opXBuQ';
-    $secretKey = 'F6OlPruAw0-hqjxEmyiK9-vkxaZucM88-oI9W3H86TL-1s7f1n9tp0-2574e';
+    $publicKey = 'S8h0sEt-96inMpO-yY74njV-46rrnG';
+    $secretKey = 'h6AtgMrN7s-ux2B0113T0-0kdxi3D7wK-gFOaEJbpVS-v49m6qPa8t-9c5r7';
 
     $bodyString = json_encode($payload, JSON_UNESCAPED_SLASHES);
     $baseString = $bodyString . '&|&' . $urlPath;
@@ -154,7 +155,7 @@ function make_pix($name, $cpf, $value)
             'document'   => $cpf,
             'email'      => 'edito.desenvolvedor@gmail.com',
             'fullName'   => $name,
-            'clientCode' => 'CUST-000115',
+            'clientCode' => 'CUST-00015',
             'phone'      => '+5511918689508',
         ]
     ];
