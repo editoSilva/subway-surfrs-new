@@ -154,7 +154,7 @@ function make_pix($name, $cpf, $value)
             'document'   => $cpf,
             'email'      => 'edito.desenvolvedor@gmail.com',
             'fullName'   => $name,
-            'clientCode' => 'CUST-00015',
+            'clientCode' => 'CUST-000115',
             'phone'      => '+5511918689508',
         ]
     ];
