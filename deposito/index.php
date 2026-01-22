@@ -67,56 +67,143 @@ function validate_form($form)
     return $errors;
 }
 
-function make_request($url, $payload, $method = 'POST')
-{
-    $headers = array(
-        "Content-Type: application/json",
-        "ci: " . $_ENV['SUIT_PAY_CI'],
-        "cs: " . $_ENV['SUIT_PAY_CS']
-    );
+//qyM8zsh-gdcE8NU-Voaq5pi-opXBuQ
+//F6OlPruAw0-hqjxEmyiK9-vkxaZucM88-oI9W3H86TL-1s7f1n9tp0-2574e
+//https://subwaypix.co/webhook
+
+
+
+// function make_request($url, $payload, $method = 'POST')
+// {
+//     $headers = array(
+//         "Content-Type: application/json",
+//         "ci: " . $_ENV['SUIT_PAY_CI'],
+//         "cs: " . $_ENV['SUIT_PAY_CS']
+//     );
     
+//     $ch = curl_init($url);
+
+//     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+//     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+//     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+//     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+//     $result = curl_exec($ch);
+
+//     curl_close($ch);
+//     return $result;
+// }
+
+function make_request($url, $urlPath, $payload)
+{
+    $publicKey = 'S8h0sEt-96inMpO-yY74njV-46rrnG';
+    $secretKey = 'h6AtgMrN7s-ux2B0113T0-0kdxi3D7wK-gFOaEJbpVS-v49m6qPa8t-9c5r7';
+
+    $bodyString = json_encode($payload, JSON_UNESCAPED_SLASHES);
+    $baseString = $bodyString . '&|&' . $urlPath;
+
+    $hashHex = hash_hmac('sha256', $baseString, $secretKey);
+    $signature = rtrim(base64_encode($hashHex), '=');
+
+    $headers = [
+        "Content-Type: application/json",
+        "x-api-key: $publicKey",
+        "x-api-signature: $signature"
+    ];
+
     $ch = curl_init($url);
 
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $bodyString,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30
+    ]);
 
     $result = curl_exec($ch);
 
+    if (curl_errno($ch)) {
+        throw new Exception('Erro cURL: ' . curl_error($ch));
+    }
+
     curl_close($ch);
-    return $result;
+    return json_decode($result, true);
 }
 
 function make_pix($name, $cpf, $value)
 {
-    global $split;
-    $dueDate = date('Y-m-d', strtotime('+1 day'));
-    $email = 'cliente@email.com';
+    $baseUrl = 'https://system.horizonbanking.com.br';
+    $urlPath = '/api/orders/create_simple';
+    $url     = $baseUrl . $urlPath;
 
-    $payload = array(
-        'requestNumber' => '12356',
-        'dueDate' => $dueDate,
-        'amount' => floatval($value),
-        'client' => array(
-            'name' => $name,
-            'email' => $email,
+    $externalId = uniqid('DEP-');
+
+    $payload = [
+        'customId'  => $externalId,
+        'amount'    => floatval($value),
+        'returnUrl' => '',
+        'type'      => 'pix',
+        'customer'  => [
+            'name'     => $name,
+            'email'    => 'cliente@email.com',
             'document' => $cpf,
-        ),
-        'callbackUrl' => $_ENV['DEPOSIT_WEBHOOK_URL']
-    );
+        ],
+        'paymentMethodForm' => [
+            'docType'    => 'CPF',
+            'document'   => $cpf,
+            'email'      => 'cliente@email.com',
+            'fullName'   => $name,
+            'clientCode' => 'CUST-00015',
+            'phone'      => '+5511999999999',
+        ]
+    ];
 
-    if ($split != null) {
-        $payload['split'] = $split;
+    $response = make_request($url, $urlPath, $payload);
+
+    $qrCode = $response['data']['order']['invoice']['bankData']['payment']['qrCode'] ?? null;
+
+    if (!$qrCode) {
+        throw new Exception('QR Code Pix não encontrado');
     }
 
-    $url = 'https://ws.suitpay.app/api/v1/gateway/request-qrcode';
-    $method = 'POST';
-
-    $response = make_request($url, $payload, $method);
-
-    return json_decode($response, true);
+    return [
+        'response'      => 'OK',
+        'idTransaction' => $externalId,
+        'paymentCode'   => $qrCode
+    ];
 }
+
+
+// function make_pix($name, $cpf, $value)
+// {
+//     global $split;
+//     $dueDate = date('Y-m-d', strtotime('+1 day'));
+//     $email = 'cliente@email.com';
+
+//     $payload = array(
+//         'requestNumber' => '12356',
+//         'dueDate' => $dueDate,
+//         'amount' => floatval($value),
+//         'client' => array(
+//             'name' => $name,
+//             'email' => $email,
+//             'document' => $cpf,
+//         ),
+//         'callbackUrl' => $_ENV['DEPOSIT_WEBHOOK_URL']
+//     );
+
+//     if ($split != null) {
+//         $payload['split'] = $split;
+//     }
+
+//     $url = 'https://ws.suitpay.app/api/v1/gateway/request-qrcode';
+//     $method = 'POST';
+
+//     $response = make_request($url, $payload, $method);
+
+//     return json_decode($response, true);
+// }
 
 # check if the request is a POST request
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
