@@ -5,7 +5,7 @@ header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(200);
-    echo json_encode(['oksss' => true]);
+    echo json_encode(['oksss' => $_SERVER['REQUEST_METHOD'] ]);
     exit;
 }
 
@@ -15,7 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $rawPayload = file_get_contents('php://input');
 $payload = json_decode($rawPayload, true);
 
-echo $payload;
 
 // Log correto
 file_put_contents(
